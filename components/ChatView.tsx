@@ -226,7 +226,12 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+      if (isAtBottom) {
+        scrollRef.current.scrollTop = scrollHeight;
+      }
     }
   }, [messages, isTyping, sessionMetrics, configError]);
 
@@ -266,6 +271,9 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
         message: userMsg.text
       });
 
+      // Remove typing indicator as soon as the stream starts
+      setIsTyping(false);
+
       const modelMsgId = (Date.now() + 1).toString();
       let fullText = '';
       let hasAddedMessage = false;
@@ -278,7 +286,6 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
           fullText += chunkText;
 
           if (!hasAddedMessage) {
-            setIsTyping(false);
             hasAddedMessage = true;
             // Add initial message with first chunk
             setMessages(prev => [
@@ -376,8 +383,8 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
 
               {/* Avatar */}
               <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ring-2 ring-opacity-50 ${msg.role === 'user'
-                  ? 'bg-gradient-to-br from-blue-600 to-blue-700 ring-blue-500'
-                  : 'bg-gradient-to-br from-gemini-card to-gemini-highlight ring-gemini-highlight'
+                ? 'bg-gradient-to-br from-blue-600 to-blue-700 ring-blue-500'
+                : 'bg-gradient-to-br from-gemini-card to-gemini-highlight ring-gemini-highlight'
                 }`}>
                 {msg.role === 'user' ? <UserIcon /> : <Shield size={20} className="text-gemini-cyan" />}
               </div>
@@ -385,8 +392,8 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
               {/* Bubble */}
               <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`p-5 text-[15px] leading-relaxed whitespace-pre-wrap shadow-xl backdrop-blur-sm ${msg.role === 'user'
-                    ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
-                    : 'glass-panel text-gemini-text rounded-2xl rounded-tl-sm'
+                  ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
+                  : 'glass-panel text-gemini-text rounded-2xl rounded-tl-sm'
                   }`}>
                   {msg.text}
                 </div>

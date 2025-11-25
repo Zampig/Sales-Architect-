@@ -214,6 +214,7 @@ const AppContent: React.FC = () => {
       onOpenProfile={handleOpenProfile}
       onOpenDashboard={handleOpenDashboard}
       onSignOut={handleSignOut}
+      onModeSelect={handleModeSelect}
     >
       {viewMode === 'text' ? (
         <ChatView

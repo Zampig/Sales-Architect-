@@ -491,7 +491,19 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
       {/* Controls */}
       {viewState !== 'analyzing' && (
         <div className="h-40 flex items-center justify-center gap-8 pb-10 z-20">
-          <button className="p-5 rounded-full bg-white/5 text-gemini-muted hover:text-white hover:bg-white/10 transition-all hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/5">
+          <button
+            onClick={() => {
+              if (streamRef.current) {
+                const audioTrack = streamRef.current.getAudioTracks()[0];
+                if (audioTrack) {
+                  audioTrack.enabled = !audioTrack.enabled;
+                  // Force re-render to show state if we had one, 
+                  // but for now just toggling functionality
+                }
+              }
+            }}
+            className="p-5 rounded-full bg-white/5 text-gemini-muted hover:text-white hover:bg-white/10 transition-all hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/5"
+          >
             <MicOff size={28} />
           </button>
 
@@ -502,7 +514,18 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
             End Session
           </button>
 
-          <button className="p-5 rounded-full bg-white/5 text-gemini-muted hover:text-white hover:bg-white/10 transition-all hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/5">
+          <button
+            onClick={() => {
+              if (outputContextRef.current) {
+                if (outputContextRef.current.state === 'running') {
+                  outputContextRef.current.suspend();
+                } else {
+                  outputContextRef.current.resume();
+                }
+              }
+            }}
+            className="p-5 rounded-full bg-white/5 text-gemini-muted hover:text-white hover:bg-white/10 transition-all hover:scale-110 active:scale-95 backdrop-blur-sm border border-white/5"
+          >
             <Volume2 size={28} />
           </button>
         </div>

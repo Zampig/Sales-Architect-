@@ -14,6 +14,7 @@ interface AppLayoutProps {
     onOpenProfile: () => void;
     onOpenDashboard: () => void;
     onSignOut: () => void;
+    onModeSelect: (mode: TrainingMode) => void;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({
@@ -26,7 +27,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     onReset,
     onOpenProfile,
     onOpenDashboard,
-    onSignOut
+    onSignOut,
+    onModeSelect
 }) => {
     return (
         <div className="flex h-screen w-full bg-gemini-dark text-gemini-text font-sans overflow-hidden">
@@ -40,6 +42,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                 onOpenProfile={onOpenProfile}
                 onOpenDashboard={onOpenDashboard}
                 onSignOut={onSignOut}
+                onModeSelect={onModeSelect}
             />
 
             {/* Main Content */}

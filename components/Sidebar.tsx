@@ -12,9 +12,10 @@ interface SidebarProps {
   onOpenProfile: () => void;
   onOpenDashboard: () => void;
   onSignOut: () => void;
+  onModeSelect: (mode: TrainingMode) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettingsChange, onReset, onOpenProfile, onOpenDashboard, onSignOut }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettingsChange, onReset, onOpenProfile, onOpenDashboard, onSignOut, onModeSelect }) => {
   const personas = [
     "The Skeptic (Needs Proof)",
     "The Budget Hawk (Price Focused)",
@@ -63,10 +64,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettings
           <h3 className="text-xs font-bold text-gemini-muted uppercase tracking-widest mb-4">Training Mode</h3>
           <div className="space-y-3">
             <button
-              onClick={() => onSettingsChange({ ...settings, mode: 'strategy' })}
+              onClick={() => onModeSelect('strategy')}
               className={`w-full p-4 rounded-lg border text-left flex items-center gap-3 transition-all ${settings.mode === 'strategy'
-                  ? 'bg-blue-600/10 border-blue-500 text-gemini-text'
-                  : 'bg-gemini-card border-transparent text-gemini-muted hover:border-gemini-highlight hover:text-gemini-text'
+                ? 'bg-blue-600/10 border-blue-500 text-gemini-text'
+                : 'bg-gemini-card border-transparent text-gemini-muted hover:border-gemini-highlight hover:text-gemini-text'
                 }`}
             >
               <Briefcase size={20} className={settings.mode === 'strategy' ? 'text-blue-400' : ''} />
@@ -77,10 +78,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettings
             </button>
 
             <button
-              onClick={() => onSettingsChange({ ...settings, mode: 'roleplay' })}
+              onClick={() => onModeSelect('roleplay')}
               className={`w-full p-4 rounded-lg border text-left flex items-center gap-3 transition-all ${settings.mode === 'roleplay'
-                  ? 'bg-cyan-600/10 border-cyan-500 text-gemini-text'
-                  : 'bg-gemini-card border-transparent text-gemini-muted hover:border-gemini-highlight hover:text-gemini-text'
+                ? 'bg-cyan-600/10 border-cyan-500 text-gemini-text'
+                : 'bg-gemini-card border-transparent text-gemini-muted hover:border-gemini-highlight hover:text-gemini-text'
                 }`}
             >
               <User size={20} className={settings.mode === 'roleplay' ? 'text-cyan-400' : ''} />
@@ -91,10 +92,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettings
             </button>
 
             <button
-              onClick={() => onSettingsChange({ ...settings, mode: 'coaching' })}
+              onClick={() => onModeSelect('coaching')}
               className={`w-full p-4 rounded-lg border text-left flex items-center gap-3 transition-all ${settings.mode === 'coaching'
-                  ? 'bg-amber-600/10 border-amber-500 text-gemini-text'
-                  : 'bg-gemini-card border-transparent text-gemini-muted hover:border-gemini-highlight hover:text-gemini-text'
+                ? 'bg-amber-600/10 border-amber-500 text-gemini-text'
+                : 'bg-gemini-card border-transparent text-gemini-muted hover:border-gemini-highlight hover:text-gemini-text'
                 }`}
             >
               <Headphones size={20} className={settings.mode === 'coaching' ? 'text-amber-400' : ''} />
@@ -125,27 +126,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettings
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Intensity Section - Hidden in Coaching Mode */}
-        {settings.mode !== 'coaching' && (
-          <div className="animate-fade-in">
-            <h3 className="text-xs font-bold text-gemini-muted uppercase tracking-widest mb-4">Intensity</h3>
-            <div className="grid grid-cols-3 bg-gemini-card p-1 rounded-lg border border-gemini-highlight">
-              {(['easy', 'normal', 'hard'] as Intensity[]).map((level) => (
-                <button
-                  key={level}
-                  onClick={() => onSettingsChange({ ...settings, intensity: level })}
-                  className={`text-xs font-medium py-2 px-3 rounded-md capitalize transition-all ${settings.intensity === level
-                      ? 'bg-gemini-highlight text-white shadow-sm'
-                      : 'text-gemini-muted hover:text-white'
-                    }`}
-                >
-                  {level}
-                </button>
-              ))}
             </div>
           </div>
         )}
