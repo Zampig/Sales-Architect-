@@ -141,7 +141,29 @@ const AppContent: React.FC = () => {
 
   const handleSignOut = async () => {
     setIsSidebarOpen(false);
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+
+    // Force immediate state reset to ensure UI updates
+    setViewMode('welcome');
+    setActiveSessionId(null);
+    setDocuments([]);
+    setUserProfile({
+      name: "",
+      title: "",
+      company: "",
+      email: "",
+      coachingStyle: "Direct",
+      voicePreference: "Female"
+    });
+    setSettings({
+      mode: 'strategy',
+      persona: 'The Skeptic (Needs Proof)',
+      intensity: 'normal'
+    });
   };
 
   const createNewSession = async (mode: TrainingMode) => {
