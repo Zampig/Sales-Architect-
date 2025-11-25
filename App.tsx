@@ -7,6 +7,7 @@ import UserProfileView from './components/UserProfile';
 import WelcomeView from './components/WelcomeView';
 import AuthView from './components/AuthView';
 import AppLayout from './components/AppLayout';
+import DashboardView from './components/DashboardView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SalesSettings, UserProfile, TrainingMode, UserDocument } from './types';
 
@@ -14,7 +15,7 @@ const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'text' | 'voice' | 'profile' | 'welcome'>('welcome');
+  const [viewMode, setViewMode] = useState<'text' | 'voice' | 'profile' | 'welcome' | 'dashboard'>('welcome');
 
   // Session Management
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -133,6 +134,11 @@ const AppContent: React.FC = () => {
     setIsSidebarOpen(false);
   };
 
+  const handleOpenDashboard = () => {
+    setViewMode('dashboard');
+    setIsSidebarOpen(false);
+  };
+
   const handleSignOut = async () => {
     setIsSidebarOpen(false);
     await supabase.auth.signOut();
@@ -206,6 +212,7 @@ const AppContent: React.FC = () => {
       onSettingsChange={setSettings}
       onReset={handleReset}
       onOpenProfile={handleOpenProfile}
+      onOpenDashboard={handleOpenDashboard}
       onSignOut={handleSignOut}
     >
       {viewMode === 'text' ? (
@@ -223,6 +230,8 @@ const AppContent: React.FC = () => {
           sessionId={activeSessionId}
           documents={documents}
         />
+      ) : viewMode === 'dashboard' ? (
+        <DashboardView />
       ) : (
         <UserProfileView
           profile={userProfile}

@@ -7,11 +7,12 @@ interface AppLayoutProps {
     children: React.ReactNode;
     isSidebarOpen: boolean;
     onSidebarChange: (isOpen: boolean) => void;
-    viewMode: 'text' | 'voice' | 'profile' | 'welcome';
+    viewMode: 'text' | 'voice' | 'profile' | 'welcome' | 'dashboard';
     settings: SalesSettings;
     onSettingsChange: (settings: any) => void; // Using any to match Sidebar props for now, should be specific
     onReset: () => void;
     onOpenProfile: () => void;
+    onOpenDashboard: () => void;
     onSignOut: () => void;
 }
 
@@ -24,6 +25,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
     onSettingsChange,
     onReset,
     onOpenProfile,
+    onOpenDashboard,
     onSignOut
 }) => {
     return (
@@ -36,6 +38,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
                 onSettingsChange={onSettingsChange}
                 onReset={onReset}
                 onOpenProfile={onOpenProfile}
+                onOpenDashboard={onOpenDashboard}
                 onSignOut={onSignOut}
             />
 
@@ -62,7 +65,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
 
                     {/* Mode Indicator */}
                     <div className="px-3 py-1 rounded-full bg-gemini-highlight text-xs font-medium text-gemini-cyan border border-gemini-cyan/20">
-                        {viewMode === 'text' ? 'TEXT MODE' : viewMode === 'voice' ? 'LIVE VOICE' : viewMode === 'profile' ? 'PROFILE' : 'WELCOME'}
+                        {viewMode === 'text' ? 'TEXT MODE' : viewMode === 'voice' ? 'LIVE VOICE' : viewMode === 'profile' ? 'PROFILE' : viewMode === 'dashboard' ? 'DASHBOARD' : 'WELCOME'}
                     </div>
                 </header>
 
