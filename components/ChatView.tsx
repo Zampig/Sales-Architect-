@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, Shield, Headphones, Activity, Trophy, TrendingUp, AlertTriangle, Sparkles, MessageSquare } from 'lucide-react';
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
+import ReactMarkdown from 'react-markdown';
 import { Message, SalesSettings, SessionMetrics, UserDocument } from '../types';
 import { SALES_KNOWLEDGE_BASE } from '../utils/knowledgeBase';
 import { supabase } from '../supabaseClient';
@@ -326,11 +327,7 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
     }
   };
 
-  const quickActions = [
-    { label: "Analyze Email", prompt: "Here is a sales email I wrote. Please analyze it for clarity, persuasion, and call-to-action strength." },
-    { label: "Handle Pricing", prompt: "I'm in a negotiation and the prospect just said 'It's too expensive'. How should I respond?" },
-    { label: "Closing Help", prompt: "Give me 3 strong closing techniques for a hesitant enterprise buyer." }
-  ];
+
 
   return (
     <div className="flex flex-col h-full bg-gemini-dark relative">
@@ -396,7 +393,22 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
                     ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
                     : 'glass-panel text-gemini-text rounded-2xl rounded-tl-sm'
                     }`}>
-                    {msg.text}
+                    {msg.role === 'user' ? (
+                      msg.text
+                    ) : (
+                      <ReactMarkdown
+                        className="prose prose-invert prose-p:leading-relaxed prose-pre:bg-gemini-card prose-pre:border prose-pre:border-gemini-highlight prose-sm max-w-none"
+                        components={{
+                          p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                          ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                          ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+                          li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+                          strong: ({ node, ...props }) => <strong className="font-bold text-white" {...props} />,
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    )}
                   </div>
                   <span className="text-[11px] text-gemini-muted mt-2 px-1 font-medium opacity-60">
                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -429,20 +441,6 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
       < div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gemini-dark via-gemini-dark/95 to-transparent pt-12 pb-6 px-6" >
         <div className="max-w-3xl mx-auto space-y-4">
 
-          {/* Quick Actions */}
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none mask-fade-sides">
-            {quickActions.map((action, i) => (
-              <button
-                key={i}
-                onClick={() => handleSend(action.prompt)}
-                disabled={!!configError}
-                className="whitespace-nowrap px-4 py-2.5 bg-gemini-card/80 hover:bg-gemini-highlight border border-gemini-highlight hover:border-gemini-blue/50 rounded-xl text-xs font-medium text-gemini-text hover:text-white transition-all shadow-sm backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 group"
-              >
-                <MessageSquare size={14} className="text-gemini-blue group-hover:text-white transition-colors" />
-                {action.label}
-              </button>
-            ))}
-          </div>
 
           {/* Input Bar */}
           <div className="relative flex items-center gap-3">
