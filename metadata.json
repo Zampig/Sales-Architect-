@@ -1,0 +1,7 @@
+{
+  "name": "Sales Architect",
+  "description": "An AI-powered sales coaching application featuring text-based strategy analysis and real-time voice roleplay scenarios powered by Gemini 2.5.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
