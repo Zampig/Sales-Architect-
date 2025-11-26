@@ -338,95 +338,95 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
       <div className="flex-1 overflow-y-auto p-6 pb-40 custom-scrollbar" ref={scrollRef}>
         <div className="max-w-3xl mx-auto space-y-8">
 
-        {configError && (
-          <div className="mx-auto max-w-2xl p-5 bg-red-500/10 border border-red-500/50 rounded-2xl animate-fade-in flex items-start gap-3">
-            <AlertTriangle className="text-red-400 shrink-0" />
-            <div>
-              <h3 className="font-bold text-red-400">Configuration Error</h3>
-              <p className="text-red-200 text-sm mt-1">{configError}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Session Metrics Header (if viewing old voice session) */}
-        {sessionMetrics && (
-          <div className="mx-auto max-w-2xl p-6 glass-card rounded-2xl animate-fade-in">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="text-gemini-blue" size={16} />
-              <h3 className="text-xs font-bold text-gemini-blue uppercase tracking-widest">Past Session Scorecard</h3>
-            </div>
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="flex flex-col items-center p-3 bg-gemini-dark/50 rounded-xl border border-gemini-highlight/30">
-                <Activity className="text-gemini-cyan mb-2" size={20} />
-                <span className="text-2xl font-bold text-white">{sessionMetrics.engagementScore}%</span>
-                <span className="text-[10px] text-gemini-muted uppercase tracking-wider">Engage</span>
-              </div>
-              <div className="flex flex-col items-center p-3 bg-gemini-dark/50 rounded-xl border border-gemini-highlight/30">
-                <Trophy className="text-purple-400 mb-2" size={20} />
-                <span className="text-2xl font-bold text-white">{sessionMetrics.conversionProbability}%</span>
-                <span className="text-[10px] text-gemini-muted uppercase tracking-wider">Win Prob</span>
-              </div>
-              <div className="flex flex-col items-center p-3 bg-gemini-dark/50 rounded-xl border border-gemini-highlight/30">
-                <TrendingUp className="text-emerald-400 mb-2" size={20} />
-                <span className="text-2xl font-bold text-white">{sessionMetrics.objectionsHandled}</span>
-                <span className="text-[10px] text-gemini-muted uppercase tracking-wider">Objections</span>
+          {configError && (
+            <div className="mx-auto max-w-2xl p-5 bg-red-500/10 border border-red-500/50 rounded-2xl animate-fade-in flex items-start gap-3">
+              <AlertTriangle className="text-red-400 shrink-0" />
+              <div>
+                <h3 className="font-bold text-red-400">Configuration Error</h3>
+                <p className="text-red-200 text-sm mt-1">{configError}</p>
               </div>
             </div>
-            <div className="text-sm text-gray-300 italic border-l-2 border-gemini-blue/50 pl-4 py-1">
-              "{sessionMetrics.feedback}"
-            </div>
-          </div>
-        )}
+          )}
 
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-            <div className={`flex max-w-[85%] md:max-w-[70%] gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-
-              {/* Avatar */}
-              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ring-2 ring-opacity-50 ${msg.role === 'user'
-                ? 'bg-gradient-to-br from-blue-600 to-blue-700 ring-blue-500'
-                : 'bg-gradient-to-br from-gemini-card to-gemini-highlight ring-gemini-highlight'
-                }`}>
-                {msg.role === 'user' ? <UserIcon /> : <Shield size={20} className="text-gemini-cyan" />}
+          {/* Session Metrics Header (if viewing old voice session) */}
+          {sessionMetrics && (
+            <div className="mx-auto max-w-2xl p-6 glass-card rounded-2xl animate-fade-in">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="text-gemini-blue" size={16} />
+                <h3 className="text-xs font-bold text-gemini-blue uppercase tracking-widest">Past Session Scorecard</h3>
               </div>
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="flex flex-col items-center p-3 bg-gemini-dark/50 rounded-xl border border-gemini-highlight/30">
+                  <Activity className="text-gemini-cyan mb-2" size={20} />
+                  <span className="text-2xl font-bold text-white">{sessionMetrics.engagementScore}%</span>
+                  <span className="text-[10px] text-gemini-muted uppercase tracking-wider">Engage</span>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-gemini-dark/50 rounded-xl border border-gemini-highlight/30">
+                  <Trophy className="text-purple-400 mb-2" size={20} />
+                  <span className="text-2xl font-bold text-white">{sessionMetrics.conversionProbability}%</span>
+                  <span className="text-[10px] text-gemini-muted uppercase tracking-wider">Win Prob</span>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-gemini-dark/50 rounded-xl border border-gemini-highlight/30">
+                  <TrendingUp className="text-emerald-400 mb-2" size={20} />
+                  <span className="text-2xl font-bold text-white">{sessionMetrics.objectionsHandled}</span>
+                  <span className="text-[10px] text-gemini-muted uppercase tracking-wider">Objections</span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-300 italic border-l-2 border-gemini-blue/50 pl-4 py-1">
+                "{sessionMetrics.feedback}"
+              </div>
+            </div>
+          )}
 
-              {/* Bubble */}
-              <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`p-5 text-[15px] leading-relaxed whitespace-pre-wrap shadow-xl backdrop-blur-sm ${msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
-                  : 'glass-panel text-gemini-text rounded-2xl rounded-tl-sm'
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+              <div className={`flex max-w-[85%] md:max-w-[70%] gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+
+                {/* Avatar */}
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ring-2 ring-opacity-50 ${msg.role === 'user'
+                  ? 'bg-gradient-to-br from-blue-600 to-blue-700 ring-blue-500'
+                  : 'bg-gradient-to-br from-gemini-card to-gemini-highlight ring-gemini-highlight'
                   }`}>
-                  {msg.text}
+                  {msg.role === 'user' ? <UserIcon /> : <Shield size={20} className="text-gemini-cyan" />}
                 </div>
-                <span className="text-[11px] text-gemini-muted mt-2 px-1 font-medium opacity-60">
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
 
-        {isTyping && (
-          <div className="flex justify-start animate-fade-in">
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gemini-card flex items-center justify-center shadow-lg border border-gemini-highlight">
-                <Shield size={20} className="text-gemini-cyan" />
-              </div>
-              <div className="glass-panel p-5 rounded-2xl rounded-tl-sm shadow-lg">
-                <div className="flex gap-1.5 items-center h-full">
-                  <span className="w-2 h-2 bg-gemini-muted rounded-full animate-bounce"></span>
-                  <span className="w-2 h-2 bg-gemini-muted rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
-                  <span className="w-2 h-2 bg-gemini-muted rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+                {/* Bubble */}
+                <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`p-5 text-[15px] leading-relaxed whitespace-pre-wrap shadow-xl backdrop-blur-sm ${msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
+                    : 'glass-panel text-gemini-text rounded-2xl rounded-tl-sm'
+                    }`}>
+                    {msg.text}
+                  </div>
+                  <span className="text-[11px] text-gemini-muted mt-2 px-1 font-medium opacity-60">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-        </div>
-      </div>
+          ))}
+
+          {isTyping && (
+            <div className="flex justify-start animate-fade-in">
+              <div className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gemini-card flex items-center justify-center shadow-lg border border-gemini-highlight">
+                  <Shield size={20} className="text-gemini-cyan" />
+                </div>
+                <div className="glass-panel p-5 rounded-2xl rounded-tl-sm shadow-lg">
+                  <div className="flex gap-1.5 items-center h-full">
+                    <span className="w-2 h-2 bg-gemini-muted rounded-full animate-bounce"></span>
+                    <span className="w-2 h-2 bg-gemini-muted rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                    <span className="w-2 h-2 bg-gemini-muted rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div >
+      </div >
 
       {/* Bottom Input Area with Blur Backdrop */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gemini-dark via-gemini-dark/95 to-transparent pt-12 pb-6 px-6">
+      < div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gemini-dark via-gemini-dark/95 to-transparent pt-12 pb-6 px-6" >
         <div className="max-w-3xl mx-auto space-y-4">
 
           {/* Quick Actions */}
@@ -503,7 +503,7 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
