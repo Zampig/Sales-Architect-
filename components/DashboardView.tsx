@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
-import { Activity, Trophy, TrendingUp, Calendar, AlertCircle, ArrowUpRight, Target, Zap, MessageSquare, Clock, Mic, Brain, ChevronRight, Play, BookOpen, CheckCircle2, XCircle } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Activity, Trophy, TrendingUp, Calendar, Zap, MessageSquare, ArrowUpRight, Target, BookOpen, Play, Download, Loader2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { SessionMetrics, ExtendedDashboardMetrics } from '../types';
-import { generateMockDashboardData } from '../utils/mockDashboardData';
+import { SessionMetrics, ExtendedDashboardMetrics, ConversationQuality, NextBestAction } from '../types';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface SessionData extends SessionMetrics {
     id: string;
@@ -23,14 +24,20 @@ const DashboardView: React.FC = () => {
     const [metrics, setMetrics] = useState<ExtendedDashboardMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<'7d' | '30d'>('7d');
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
     useEffect(() => {
         if (!user) return;
         fetchDashboardData();
-    }, [user]);
+    }, [user, timeRange]);
 
     const fetchDashboardData = async () => {
         try {
+            // Calculate date range
+            const now = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(now.getDate() - (timeRange === '7d' ? 7 : 30));
+
             const { data, error } = await supabase
                 .from('sessions')
                 .select(`
@@ -38,6 +45,7 @@ const DashboardView: React.FC = () => {
           session_metrics (engagement_score, objections_handled, conversion_probability, feedback)
         `)
                 .eq('user_id', user!.id)
+                .gte('created_at', pastDate.toISOString())
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
@@ -58,16 +66,66 @@ const DashboardView: React.FC = () => {
 
                 setSessions(processedSessions);
 
-                // Generate Extended Metrics (Mocked based on real aggregates)
+                // --- Calculate Real Metrics ---
                 const total = processedSessions.length;
-                const realAggregates = {
-                    totalSessions: total,
-                    avgEngagement: total ? Math.round(processedSessions.reduce((acc, s) => acc + s.engagementScore, 0) / total) : 0,
-                    avgWinProb: total ? Math.round(processedSessions.reduce((acc, s) => acc + s.conversionProbability, 0) / total) : 0,
-                    totalObjections: processedSessions.reduce((acc, s) => acc + s.objectionsHandled, 0)
+                const avgEngagement = total ? Math.round(processedSessions.reduce((acc, s) => acc + s.engagementScore, 0) / total) : 0;
+                const avgWinProb = total ? Math.round(processedSessions.reduce((acc, s) => acc + s.conversionProbability, 0) / total) : 0;
+                const overallScore = Math.round((avgEngagement + avgWinProb) / 2);
+
+                // Calculate Streak (Mock logic for now as we need full history for real streak, but let's try best effort)
+                // For real streak, we'd need to fetch more data or have a separate query. 
+                // Here we just check consecutive days in the fetched range.
+                let streak = 0;
+                if (processedSessions.length > 0) {
+                    streak = 1;
+                    // Simple logic: if we have sessions today/yesterday etc. 
+                    // For this MVP, let's just use the count of unique days in the last 7 days as a proxy for "consistency"
+                    const uniqueDays = new Set(processedSessions.map(s => s.created_at)).size;
+                    streak = uniqueDays;
+                }
+
+                // Generate Next Best Actions based on performance
+                const nextActions: NextBestAction[] = [];
+                if (avgEngagement < 60) {
+                    nextActions.push({ id: '1', title: 'Energy & Tone Drill', type: 'drill', actionUrl: '#' });
+                }
+                if (avgWinProb < 50) {
+                    nextActions.push({ id: '2', title: 'Closing Techniques Review', type: 'learning', actionUrl: '#' });
+                }
+                if (nextActions.length === 0) {
+                    nextActions.push({ id: '3', title: 'Advanced Negotiation Sim', type: 'drill', actionUrl: '#' });
+                }
+                // Fill up to 3
+                if (nextActions.length < 3) {
+                    nextActions.push({ id: '4', title: 'Competitor Battlecards', type: 'review', actionUrl: '#' });
+                }
+
+
+                // Mock Conversation Quality (since we don't have this granular data in DB yet)
+                const conversationQuality: ConversationQuality = {
+                    talkToListenRatio: 0.55,
+                    questionToStatementRatio: 0.3,
+                    discoveryTimeMs: 120000,
+                    pitchTimeMs: 60000,
+                    fillerWordsPerMinute: 3,
+                    speakingPaceWpm: 145,
+                    frameworkAdherenceScore: 85
                 };
 
-                setMetrics(generateMockDashboardData(realAggregates));
+                setMetrics({
+                    overallScore,
+                    avgWinProb,
+                    avgEngagement,
+                    practiceStreakDays: streak,
+                    trends: { score: 'up', winProb: 'flat', engagement: 'up' }, // Simple defaults
+                    conversationQuality,
+                    skills: [], // Removed
+                    objections: [], // Removed
+                    sentiment: { start: 0, end: 0, timeline: [] }, // Removed
+                    recentFeedback: [], // Could populate from sessions if needed
+                    productKnowledge: { keywordsUsed: [], keywordsMissed: [], accuracyScore: 0 }, // Removed
+                    nextActions
+                });
             }
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
@@ -76,11 +134,41 @@ const DashboardView: React.FC = () => {
         }
     };
 
+    const generatePDF = async () => {
+        const element = document.getElementById('dashboard-content');
+        if (!element) return;
+
+        setIsGeneratingPdf(true);
+
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                backgroundColor: '#0f172a', // gemini-dark
+                useCORS: true,
+                logging: false
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save(`Sales_Architect_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (err) {
+            console.error("PDF Generation Error", err);
+        } finally {
+            setIsGeneratingPdf(false);
+        }
+    };
+
     if (loading || !metrics) {
         return (
             <div className="flex items-center justify-center h-full text-gemini-blue animate-pulse">
                 <div className="flex flex-col items-center gap-4">
-                    <Activity className="w-10 h-10 animate-spin" />
+                    <Loader2 className="w-10 h-10 animate-spin" />
                     <span className="text-lg font-medium">Loading Analytics...</span>
                 </div>
             </div>
@@ -88,7 +176,7 @@ const DashboardView: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full bg-gemini-dark p-6 overflow-y-auto space-y-6 custom-scrollbar">
+        <div className="flex flex-col h-full bg-gemini-dark p-6 overflow-y-auto space-y-6 custom-scrollbar" id="dashboard-content">
 
             {/* Header */}
             <div className="flex justify-between items-end border-b border-gemini-highlight/30 pb-4">
@@ -98,19 +186,30 @@ const DashboardView: React.FC = () => {
                     </h1>
                     <p className="text-gemini-muted mt-1 text-sm">Track your progress and master your sales skills.</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                     <button
-                        onClick={() => setTimeRange('7d')}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${timeRange === '7d' ? 'bg-gemini-blue text-white' : 'bg-gemini-card text-gemini-muted hover:text-white'}`}
+                        onClick={generatePDF}
+                        disabled={isGeneratingPdf}
+                        className="flex items-center gap-2 px-4 py-2 bg-gemini-card border border-gemini-highlight text-white rounded-lg hover:bg-gemini-highlight transition-all disabled:opacity-50"
                     >
-                        Last 7 Days
+                        {isGeneratingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        {isGeneratingPdf ? 'Generating...' : 'Download Report'}
                     </button>
-                    <button
-                        onClick={() => setTimeRange('30d')}
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${timeRange === '30d' ? 'bg-gemini-blue text-white' : 'bg-gemini-card text-gemini-muted hover:text-white'}`}
-                    >
-                        Last 30 Days
-                    </button>
+
+                    <div className="flex bg-gemini-card rounded-lg p-1 border border-gemini-highlight">
+                        <button
+                            onClick={() => setTimeRange('7d')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${timeRange === '7d' ? 'bg-gemini-blue text-white shadow-sm' : 'text-gemini-muted hover:text-white'}`}
+                        >
+                            7 Days
+                        </button>
+                        <button
+                            onClick={() => setTimeRange('30d')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${timeRange === '30d' ? 'bg-gemini-blue text-white shadow-sm' : 'text-gemini-muted hover:text-white'}`}
+                        >
+                            30 Days
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -138,8 +237,8 @@ const DashboardView: React.FC = () => {
                     color="blue"
                 />
                 <KpiCard
-                    title="Practice Streak"
-                    value={`${metrics.practiceStreakDays} Days`}
+                    title="Active Days (Streak)"
+                    value={`${metrics.practiceStreakDays}`}
                     icon={<Calendar size={20} />}
                     trend="up"
                     color="emerald"
@@ -151,157 +250,52 @@ const DashboardView: React.FC = () => {
                 {/* Left Column - 2/3 Width */}
                 <div className="lg:col-span-2 space-y-6">
 
-                    {/* 6. Performance Trend */}
+                    {/* Performance Trend Chart */}
                     <div className="glass-card p-5 rounded-xl">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                 <TrendingUp size={18} className="text-blue-400" /> Performance Trend
                             </h3>
                         </div>
-                        <div className="h-[250px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={sessions} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorEngagement" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="colorWin" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
-                                    <XAxis dataKey="created_at" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#e2e8f0' }}
-                                    />
-                                    <Area type="monotone" dataKey="engagementScore" stroke="#3b82f6" fillOpacity={1} fill="url(#colorEngagement)" name="Engagement" />
-                                    <Area type="monotone" dataKey="conversionProbability" stroke="#a855f7" fillOpacity={1} fill="url(#colorWin)" name="Win Prob" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-
-                    {/* 3. Skill Breakdown */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {metrics.skills.map((skill, idx) => (
-                            <div key={idx} className="glass-card p-4 rounded-xl hover:border-blue-500/30 transition-colors group">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="font-semibold text-white">{skill.name}</span>
-                                    <span className={`text-xs font-bold px-2 py-1 rounded-md ${skill.score >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
-                                            skill.score >= 60 ? 'bg-amber-500/10 text-amber-400' :
-                                                'bg-red-500/10 text-red-400'
-                                        }`}>
-                                        {skill.score}
-                                    </span>
+                        <div className="h-[300px] w-full">
+                            {sessions.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={sessions} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorEngagement" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorWin" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
+                                        <XAxis dataKey="created_at" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
+                                            itemStyle={{ color: '#e2e8f0' }}
+                                        />
+                                        <Area type="monotone" dataKey="engagementScore" stroke="#3b82f6" fillOpacity={1} fill="url(#colorEngagement)" name="Engagement" />
+                                        <Area type="monotone" dataKey="conversionProbability" stroke="#a855f7" fillOpacity={1} fill="url(#colorWin)" name="Win Prob" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-gemini-muted">
+                                    No session data available for this period.
                                 </div>
-                                <div className="w-full bg-gemini-dark h-1.5 rounded-full mb-3 overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full ${skill.score >= 80 ? 'bg-emerald-500' :
-                                                skill.score >= 60 ? 'bg-amber-500' :
-                                                    'bg-red-500'
-                                            }`}
-                                        style={{ width: `${skill.score}%` }}
-                                    ></div>
-                                </div>
-                                <p className="text-xs text-gemini-muted mb-3 line-clamp-1">{skill.description}</p>
-                                <button className="text-xs font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    Practice this skill <ChevronRight size={12} />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* 4. Objection Handling Zone */}
-                    <div className="glass-card p-5 rounded-xl">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <AlertCircle size={18} className="text-red-400" /> Objection Handling
-                            </h3>
-                            <button className="text-xs bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors font-medium">
-                                Start Objection Drill
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {metrics.objections.map((obj, idx) => (
-                                <div key={idx} className="bg-gemini-dark/50 p-3 rounded-lg border border-gemini-highlight/30 flex justify-between items-center">
-                                    <div>
-                                        <div className="font-medium text-sm text-white">{obj.type}</div>
-                                        <div className="text-xs text-gemini-muted mt-0.5">{obj.count} attempts • {obj.avgResponseTimeMs / 1000}s avg pace</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-lg font-bold text-white">{obj.successRate}%</div>
-                                        <div className="text-[10px] text-gemini-muted uppercase">Success</div>
-                                    </div>
-                                </div>
-                            ))}
+                            )}
                         </div>
                     </div>
 
-                    {/* 5. Engagement & Sentiment */}
-                    <div className="glass-card p-5 rounded-xl">
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-                            <Brain size={18} className="text-purple-400" /> Buyer Sentiment Flow
-                        </h3>
-                        <div className="h-[150px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={metrics.sentiment.timeline}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.3} />
-                                    <XAxis dataKey="trigger" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} interval={0} />
-                                    <YAxis domain={[0, 100]} hide />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
-                                        itemStyle={{ color: '#e2e8f0' }}
-                                    />
-                                    <Line type="monotone" dataKey="score" stroke="#a855f7" strokeWidth={3} dot={{ r: 4, fill: '#a855f7' }} activeDot={{ r: 6 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="flex justify-between mt-2 text-xs text-gemini-muted px-2">
-                            <span>Start: <span className="text-white font-bold">{metrics.sentiment.start}%</span></span>
-                            <span>End: <span className="text-white font-bold">{metrics.sentiment.end}%</span></span>
-                        </div>
-                    </div>
-
-                </div>
-
-                {/* Right Column - 1/3 Width */}
-                <div className="space-y-6">
-
-                    {/* 10. Next Best Actions */}
-                    <div className="glass-panel p-5 rounded-xl border-l-4 border-l-blue-500">
-                        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <Zap size={18} className="text-yellow-400" /> Next Best Actions
-                        </h3>
-                        <div className="space-y-3">
-                            {metrics.nextActions.map((action) => (
-                                <button key={action.id} className="w-full text-left p-3 rounded-lg bg-gemini-dark hover:bg-gemini-highlight transition-colors border border-gemini-highlight/50 group">
-                                    <div className="flex items-start gap-3">
-                                        <div className={`mt-1 p-1.5 rounded-full ${action.type === 'drill' ? 'bg-red-500/20 text-red-400' :
-                                                action.type === 'learning' ? 'bg-blue-500/20 text-blue-400' :
-                                                    'bg-emerald-500/20 text-emerald-400'
-                                            }`}>
-                                            {action.type === 'drill' ? <Target size={14} /> : action.type === 'learning' ? <BookOpen size={14} /> : <Play size={14} />}
-                                        </div>
-                                        <div>
-                                            <div className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">{action.title}</div>
-                                            <div className="text-xs text-gemini-muted mt-1 capitalize">{action.type}</div>
-                                        </div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 2. Conversation Quality */}
+                    {/* Conversation Quality Section (Moved here for better visibility) */}
                     <div className="glass-card p-5 rounded-xl">
                         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <MessageSquare size={18} className="text-cyan-400" /> Conversation Quality
                         </h3>
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <QualityMetric
                                 label="Talk / Listen Ratio"
                                 value={`${Math.round(metrics.conversationQuality.talkToListenRatio * 100)}% Talk`}
@@ -329,54 +323,61 @@ const DashboardView: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 7. Recent Coaching Feedback */}
-                    <div className="glass-card p-5 rounded-xl">
+                </div>
+
+                {/* Right Column - 1/3 Width */}
+                <div className="space-y-6">
+
+                    {/* Next Best Actions */}
+                    <div className="glass-panel p-5 rounded-xl border-l-4 border-l-blue-500">
                         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <Brain size={18} className="text-pink-400" /> Recent Feedback
+                            <Zap size={18} className="text-yellow-400" /> Next Best Actions
                         </h3>
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                            {metrics.recentFeedback.map((fb) => (
-                                <div key={fb.id} className="bg-gemini-dark/50 p-3 rounded-lg border border-gemini-highlight/30">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider bg-gemini-highlight px-1.5 py-0.5 rounded text-gemini-muted">{fb.tag}</span>
-                                        <span className="text-[10px] text-gemini-muted">{fb.date}</span>
+                        <div className="space-y-3">
+                            {metrics.nextActions.map((action) => (
+                                <button key={action.id} className="w-full text-left p-3 rounded-lg bg-gemini-dark hover:bg-gemini-highlight transition-colors border border-gemini-highlight/50 group">
+                                    <div className="flex items-start gap-3">
+                                        <div className={`mt-1 p-1.5 rounded-full ${action.type === 'drill' ? 'bg-red-500/20 text-red-400' :
+                                            action.type === 'learning' ? 'bg-blue-500/20 text-blue-400' :
+                                                'bg-emerald-500/20 text-emerald-400'
+                                            }`}>
+                                            {action.type === 'drill' ? <Target size={14} /> : action.type === 'learning' ? <BookOpen size={14} /> : <Play size={14} />}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">{action.title}</div>
+                                            <div className="text-xs text-gemini-muted mt-1 capitalize">{action.type}</div>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-gray-300 mb-2 leading-relaxed">"{fb.feedback}"</p>
-                                    <div className="flex items-center gap-1 text-emerald-400 text-xs font-medium">
-                                        <ArrowUpRight size={12} /> {fb.impact}
-                                    </div>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* 9. Product Knowledge */}
+                    {/* Recent Sessions List (New addition to fill space) */}
                     <div className="glass-card p-5 rounded-xl">
                         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <BookOpen size={18} className="text-indigo-400" /> Knowledge Check
+                            <Activity size={18} className="text-purple-400" /> Recent Sessions
                         </h3>
-                        <div className="mb-4">
-                            <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gemini-muted">Accuracy Score</span>
-                                <span className="text-white font-bold">{metrics.productKnowledge.accuracyScore}%</span>
-                            </div>
-                            <div className="w-full bg-gemini-dark h-2 rounded-full overflow-hidden">
-                                <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${metrics.productKnowledge.accuracyScore}%` }}></div>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex flex-wrap gap-1">
-                                {metrics.productKnowledge.keywordsUsed.map(k => (
-                                    <span key={k} className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-full flex items-center gap-1">
-                                        <CheckCircle2 size={10} /> {k}
-                                    </span>
-                                ))}
-                                {metrics.productKnowledge.keywordsMissed.map(k => (
-                                    <span key={k} className="text-[10px] bg-red-500/10 text-red-400 px-2 py-1 rounded-full flex items-center gap-1">
-                                        <XCircle size={10} /> {k}
-                                    </span>
-                                ))}
-                            </div>
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                            {sessions.slice(0, 5).reverse().map((session) => (
+                                <div key={session.id} className="bg-gemini-dark/50 p-3 rounded-lg border border-gemini-highlight/30">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="text-xs font-bold text-white">{session.persona}</span>
+                                        <span className="text-[10px] text-gemini-muted">{session.created_at}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <div className="text-xs text-gemini-muted">
+                                            Score: <span className="text-white">{session.engagementScore}</span>
+                                        </div>
+                                        <div className="text-xs text-gemini-muted">
+                                            Win: <span className="text-white">{session.conversionProbability}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {sessions.length === 0 && (
+                                <p className="text-sm text-gemini-muted italic">No recent sessions.</p>
+                            )}
                         </div>
                     </div>
 
@@ -401,11 +402,7 @@ const KpiCard = ({ title, value, icon, trend, color }: { title: string, value: s
                 <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
                     {icon}
                 </div>
-                {trend !== 'flat' && (
-                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 ${trend === 'up' ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
-                        {trend === 'up' ? '+' : '-'}{Math.floor(Math.random() * 10) + 1}%
-                    </span>
-                )}
+                {/* Removed trend percentage for simplicity as requested, just showing icon if needed or keeping it simple */}
             </div>
             <div>
                 <div className="text-2xl font-bold text-white">{value}</div>
