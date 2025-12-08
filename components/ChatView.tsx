@@ -213,7 +213,7 @@ const ChatView: React.FC<ChatViewProps> = ({ settings, onSwitchToVoice, sessionI
         `;
 
       chatSessionRef.current = ai.chats.create({
-        model: 'gemini-1.5-pro', // Upgraded to 1.5 Pro for better reasoning
+        model: 'gemini-2.0-flash-exp', // Using Flash 2.0 Exp for best performance
         config: {
           systemInstruction: systemInstruction,
         }

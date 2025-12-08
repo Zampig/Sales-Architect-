@@ -78,20 +78,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettings
             </button>
 
             <button
-              onClick={() => onModeSelect('roleplay')}
-              className={`w-full p-4 rounded-lg border text-left flex items-center gap-3 transition-all ${settings.mode === 'roleplay'
-                ? 'bg-cyan-600/10 border-cyan-500 text-gemini-text'
-                : 'bg-gemini-card border-transparent text-gemini-muted hover:border-gemini-highlight hover:text-gemini-text'
-                }`}
-            >
-              <User size={20} className={settings.mode === 'roleplay' ? 'text-cyan-400' : ''} />
-              <div>
-                <div className="font-semibold text-sm">Live Roleplay</div>
-                <div className="text-xs opacity-70">Simulated Prospect</div>
-              </div>
-            </button>
-
-            <button
               onClick={() => onModeSelect('coaching')}
               className={`w-full p-4 rounded-lg border text-left flex items-center gap-3 transition-all ${settings.mode === 'coaching'
                 ? 'bg-amber-600/10 border-amber-500 text-gemini-text'
@@ -106,29 +92,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, settings, onSettings
             </button>
           </div>
         </div>
-
-        {/* Persona Section - Hidden in Coaching Mode */}
-        {settings.mode !== 'coaching' && (
-          <div className="animate-fade-in">
-            <h3 className="text-xs font-bold text-gemini-muted uppercase tracking-widest mb-4">Prospect Persona</h3>
-            <div className="relative">
-              <select
-                value={settings.persona}
-                onChange={(e) => onSettingsChange({ ...settings, persona: e.target.value })}
-                className="w-full bg-gemini-card text-gemini-text text-sm rounded-lg p-3 border border-gemini-highlight focus:border-gemini-blue focus:outline-none appearance-none cursor-pointer hover:border-gemini-muted transition-colors"
-              >
-                {personas.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-3 pointer-events-none text-gemini-muted">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Account Section */}
         <div className="pb-4">

@@ -237,7 +237,7 @@ const DashboardView: React.FC = () => {
                     color="blue"
                 />
                 <KpiCard
-                    title="Active Days (Streak)"
+                    title="Daily Streak"
                     value={`${metrics.practiceStreakDays}`}
                     icon={<Calendar size={20} />}
                     trend="up"
@@ -328,10 +328,10 @@ const DashboardView: React.FC = () => {
                 {/* Right Column - 1/3 Width */}
                 <div className="space-y-6">
 
-                    {/* Next Best Actions */}
+                    {/* AI Focus Suggestions */}
                     <div className="glass-panel p-5 rounded-xl border-l-4 border-l-blue-500">
                         <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <Zap size={18} className="text-yellow-400" /> Next Best Actions
+                            <Zap size={18} className="text-yellow-400" /> AI Focus Suggestions
                         </h3>
                         <div className="space-y-3">
                             {metrics.nextActions.map((action) => (
