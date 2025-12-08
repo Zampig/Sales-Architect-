@@ -100,6 +100,23 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
           ? `\n*** USER PROVIDED COMPANY CONTEXT ***\nThe user has uploaded the following documents about their company/product. Use this information to tailor your advice and roleplay specifics.\n\n${documents.map(d => `--- Document: ${d.filename} ---\n${d.content}\n`).join('\n')}\n*************************************`
           : "";
 
+        // 4. Fetch Recent Chat History for Context
+        let chatHistoryContext = "";
+        if (sessionId) {
+          const { data: recentMessages } = await supabase
+            .from('messages')
+            .select('role, content')
+            .eq('session_id', sessionId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+          if (recentMessages && recentMessages.length > 0) {
+            // Reverse to chronological order
+            const history = recentMessages.reverse().map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+            chatHistoryContext = `\nRECENT CHAT HISTORY (Use this context to understand what the user wants to practice):\n${history}\n`;
+          }
+        }
+
         // SUPER PROMPT: Mentor + Dynamic Roleplay
         systemInstruction = `
             You are the Sales Architect, a master sales coach.
@@ -121,6 +138,8 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
             ${SALES_KNOWLEDGE_BASE}
 
             ${userContext}
+
+            ${chatHistoryContext}
            `;
 
         // Determine voice name based on preference

@@ -241,7 +241,10 @@ const AppContent: React.FC = () => {
       {viewMode === 'text' ? (
         <ChatView
           settings={settings}
-          onSwitchToVoice={() => setViewMode('voice')}
+          onSwitchToVoice={() => {
+            setSettings(prev => ({ ...prev, mode: 'coaching' }));
+            setViewMode('voice');
+          }}
           sessionId={activeSessionId}
           documents={documents}
         />
