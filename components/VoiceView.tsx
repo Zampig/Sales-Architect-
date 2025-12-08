@@ -41,6 +41,8 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
   // Audio State Refs for Voice Tuning
   const isAiSpeakingRef = useRef(false);
   const aiResponseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const audioQueueRef = useRef<AudioBuffer[]>([]);
+  const isResponsePendingRef = useRef(false);
 
   // Cleanup function to stop audio and close connections
   const cleanupAudio = () => {
