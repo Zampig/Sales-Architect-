@@ -70,9 +70,26 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
     if (outputContextRef.current && outputContextRef.current.state !== 'closed') outputContextRef.current.close();
   };
 
+  // Hidden State Ref
+  const hiddenStateRef = useRef<any>(null);
+
   useEffect(() => {
     // Reset transcript on new session
     transcriptRef.current = [];
+
+    // GENERATE HIDDEN STATE
+    const generateHiddenState = () => {
+      const budgets = ["$50k firm cap", "$100k but needs VP approval", "Flexible if ROI is proven", "No budget allocated yet"];
+      const competitors = ["Competitor X (cheaper)", "In-house solution", "None, status quo", "Competitor Y (better features)"];
+      const decisionMakers = ["I am the sole decision maker", "I need to convince my CTO", "Committee decision", "CFO holds the purse strings"];
+
+      return {
+        budgetCap: budgets[Math.floor(Math.random() * budgets.length)],
+        hiddenCompetitor: competitors[Math.floor(Math.random() * competitors.length)],
+        realDecisionMaker: decisionMakers[Math.floor(Math.random() * decisionMakers.length)]
+      };
+    };
+    hiddenStateRef.current = generateHiddenState();
 
     const startSession = async () => {
       try {
@@ -117,24 +134,46 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
           }
         }
 
-        // SUPER PROMPT: Mentor + Dynamic Roleplay
+        // SUPER PROMPT: Mentor + Dynamic Roleplay + Reverse Roleplay + Advanced Features
         systemInstruction = `
             You are the Sales Architect, a master sales coach.
             
-            PRIMARY MODE: MENTOR
-            - You are an encouraging, punchy, and direct sales mentor.
-            - Listen to the user, ask clarifying questions, and provide advice based on the KNOWLEDGE BASE below.
-            - Use short, conversational sentences.
-            
-            DYNAMIC ROLEPLAY CAPABILITY:
-            - If the user asks to "roleplay", "practice a pitch", or "simulate a call", you must IMMEDIATELY switch to the persona of the prospect described by the user (or a standard difficult prospect if not specified).
-            - When in Roleplay Mode:
-              - Stay in character 100%.
-              - Be challenging but realistic.
-              - Do not break character until the user says "stop", "pause", or "feedback".
-            - When the roleplay ends, revert to MENTOR mode and provide specific feedback based on the methodology.
+            You have THREE distinct modes of operation. You must dynamically switch between them based on the user's request.
 
-            KNOWLEDGE BASE:
+            *** GLOBAL COMMANDS (ALWAYS ACTIVE) ***
+            - "TIME OUT" / "PAUSE": Immediately break character. Switch to MENTOR mode. Discuss the last interaction.
+            - "RESUME" / "TIME IN": Immediately revert to the previous roleplay persona and continue exactly where you left off.
+
+            *** HIDDEN STATE (INFORMATION ASYMMETRY) ***
+            You possess the following HIDDEN INFORMATION. Do NOT reveal it unless the user asks a specific, high-quality discovery question targeting it. If they ask a generic question, give a vague answer.
+            - Budget: ${hiddenStateRef.current.budgetCap}
+            - Competitor: ${hiddenStateRef.current.hiddenCompetitor}
+            - Decision Maker: ${hiddenStateRef.current.realDecisionMaker}
+
+            *** CONVERSATIONAL REALISM ***
+            - Speak naturally. Use occasional fillers ("um", "uh", "well") and false starts to sound human, especially when thinking or hesitating.
+            - If the user interrupts, stop speaking immediately.
+
+            MODE 1: MENTOR (Default)
+            - Role: Encouraging, punchy, direct sales coach.
+            - Goal: Listen to the user, ask clarifying questions, and provide advice based on the KNOWLEDGE BASE.
+            - Style: Short, conversational sentences.
+            
+            MODE 2: STANDARD ROLEPLAY (User = Rep, AI = Prospect)
+            - Trigger: User says "roleplay", "practice a pitch", "simulate a call".
+            - Role: You are the PROSPECT defined by the user (or a standard difficult prospect).
+            - Behavior: Stay in character 100%. Be challenging. Do not break character until user says "stop".
+
+            MODE 3: REVERSE ROLEPLAY (AI = Rep, User = Prospect)
+            - Trigger: User says "reverse roleplay", "you be the rep", "show me how to do it", "you sell to me".
+            - Role: You are the STAR SALESPERSON using the proprietary methodology below.
+            - Behavior: 
+              - You must demonstrate the PERFECT application of the sales techniques.
+              - Drive the conversation forward.
+              - Ask high-quality discovery questions.
+              - Handle objections using the "Feel, Felt, Found" or "Clarify, Isolate, Overcome" frameworks from the knowledge base.
+            
+            KNOWLEDGE BASE (Use this for advice AND for your behavior in Reverse Roleplay):
             ${SALES_KNOWLEDGE_BASE}
 
             ${userContext}
@@ -325,6 +364,8 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
             - objectionsHandled: number
             - conversionProbability: number (0-100)
             - feedback: string (2 sentences plain text advice).
+            - strengths: string[] (1-2 key strengths)
+            - focusAreas: string[] (1-2 critical areas to improve)
             `,
         config: {
           responseMimeType: "application/json"
@@ -345,6 +386,8 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
             objections_handled: metricsData.objectionsHandled,
             conversion_probability: metricsData.conversionProbability,
             feedback: metricsData.feedback
+            // Note: We'd need to update the Supabase schema to store strengths/focusAreas if we want to persist them,
+            // but for now we just display them in the summary view.
           });
         }
 
@@ -388,6 +431,34 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
               <TrendingUp className="text-purple-400 mb-2" size={32} />
               <span className="text-5xl font-light text-white">{metrics.conversionProbability}%</span>
               <span className="text-xs text-gemini-muted uppercase tracking-wider font-medium">Win Probability</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-emerald-500">
+              <h3 className="text-emerald-400 font-bold mb-3 text-sm uppercase tracking-wide flex items-center gap-2">
+                <Sparkles size={16} /> Key Strengths
+              </h3>
+              <ul className="space-y-2">
+                {metrics.strengths?.map((s, i) => (
+                  <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
+                    <span className="text-emerald-500 mt-1">•</span> {s}
+                  </li>
+                )) || <li className="text-gray-400 text-sm italic">No specific strengths identified.</li>}
+              </ul>
+            </div>
+
+            <div className="glass-panel p-6 rounded-2xl border-l-4 border-l-amber-500">
+              <h3 className="text-amber-400 font-bold mb-3 text-sm uppercase tracking-wide flex items-center gap-2">
+                <AlertTriangle size={16} /> Focus Areas
+              </h3>
+              <ul className="space-y-2">
+                {metrics.focusAreas?.map((s, i) => (
+                  <li key={i} className="text-gray-300 text-sm flex items-start gap-2">
+                    <span className="text-amber-500 mt-1">•</span> {s}
+                  </li>
+                )) || <li className="text-gray-400 text-sm italic">No specific focus areas identified.</li>}
+              </ul>
             </div>
           </div>
 

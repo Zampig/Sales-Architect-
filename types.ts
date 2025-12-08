@@ -23,11 +23,21 @@ export interface LiveConnectionState {
   error: string | null;
 }
 
+export interface HiddenState {
+  budgetCap?: string;
+  hiddenCompetitor?: string;
+  realDecisionMaker?: string;
+  timelineConstraint?: string;
+  painPoint?: string;
+}
+
 export interface SessionMetrics {
   engagementScore: number;
   objectionsHandled: number;
   conversionProbability: number;
   feedback: string;
+  strengths?: string[];
+  focusAreas?: string[];
 }
 
 export interface UserProfile {
