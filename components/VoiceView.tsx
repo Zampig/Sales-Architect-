@@ -40,9 +40,6 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
 
   // Audio State Refs for Voice Tuning
   const isAiSpeakingRef = useRef(false);
-  const aiResponseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const audioQueueRef = useRef<AudioBuffer[]>([]);
-  const isResponsePendingRef = useRef(false);
 
   // Cleanup function to stop audio and close connections
   const cleanupAudio = () => {
@@ -52,7 +49,8 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
     });
     audioSourcesRef.current.clear();
     isAiSpeakingRef.current = false;
-    if (aiResponseTimeoutRef.current) clearTimeout(aiResponseTimeoutRef.current);
+    audioSourcesRef.current.clear();
+    isAiSpeakingRef.current = false;
 
     // Close Gemini session
     if (sessionPromiseRef.current) {
@@ -275,30 +273,20 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
                     24000
                   );
 
-                  const playAudio = () => {
-                    const source = ctx.createBufferSource();
-                    source.buffer = audioBuffer;
-                    source.connect(ctx.destination);
-                    source.addEventListener('ended', () => {
-                      audioSourcesRef.current.delete(source);
-                      if (audioSourcesRef.current.size === 0) {
-                        isAiSpeakingRef.current = false;
-                      }
-                    });
+                  const source = ctx.createBufferSource();
+                  source.buffer = audioBuffer;
+                  source.connect(ctx.destination);
+                  source.addEventListener('ended', () => {
+                    audioSourcesRef.current.delete(source);
+                    if (audioSourcesRef.current.size === 0) {
+                      isAiSpeakingRef.current = false;
+                    }
+                  });
 
-                    source.start(nextStartTimeRef.current);
-                    nextStartTimeRef.current += audioBuffer.duration;
-                    audioSourcesRef.current.add(source);
-                    isAiSpeakingRef.current = true;
-                  };
-
-                  // RESPONSE DELAY logic
-                  // If this is the start of a new turn (no audio playing), delay it slightly
-                  if (!isAiSpeakingRef.current && audioSourcesRef.current.size === 0) {
-                    aiResponseTimeoutRef.current = setTimeout(playAudio, 600); // 600ms delay
-                  } else {
-                    playAudio(); // Continue stream immediately
-                  }
+                  source.start(nextStartTimeRef.current);
+                  nextStartTimeRef.current += audioBuffer.duration;
+                  audioSourcesRef.current.add(source);
+                  isAiSpeakingRef.current = true;
 
                 } catch (e) {
                   console.error("Audio Decode Error", e);
@@ -310,7 +298,6 @@ const VoiceView: React.FC<VoiceViewProps> = ({ settings, onClose, voicePreferenc
                 audioSourcesRef.current.clear();
                 isAiSpeakingRef.current = false;
                 nextStartTimeRef.current = 0;
-                if (aiResponseTimeoutRef.current) clearTimeout(aiResponseTimeoutRef.current);
                 // Clear pending output transcript on interrupt as it might be cut off
                 currentOutputTransRef.current = '';
               }
